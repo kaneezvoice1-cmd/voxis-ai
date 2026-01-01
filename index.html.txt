@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VOXIS AI - Pro Audio Suite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #0f172a; color: white; font-family: sans-serif; }
+        .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        .wave-bar { width: 4px; height: 15px; background: #6366f1; border-radius: 10px; transition: 0.3s; }
+        .animating .wave-bar { animation: pulse 0.8s infinite alternate; }
+        @keyframes pulse { from { height: 15px; } to { height: 50px; } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-6">
+
+    <header class="w-full max-w-4xl flex justify-between items-center mb-10">
+        <h1 class="text-2xl font-bold tracking-tighter italic">VOXIS AI</h1>
+        <div class="flex gap-2">
+            <button onclick="tab('gemini')" class="px-4 py-2 rounded-lg bg-indigo-600 text-sm font-bold">Gemini</button>
+            <button onclick="tab('zyphra')" class="px-4 py-2 rounded-lg bg-slate-800 text-sm font-bold">Zyphra</button>
+        </div>
+    </header>
+
+    <div id="visualizer" class="w-full max-w-xl h-40 glass rounded-3xl mb-8 flex items-center justify-center gap-2">
+        <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+    </div>
+
+    <main class="w-full max-w-xl">
+        <div id="gemini-box" class="space-y-4">
+            <div id="chat" class="h-64 overflow-y-auto glass p-4 rounded-xl text-sm space-y-2"></div>
+            <div class="flex gap-2">
+                <input id="g-input" class="flex-1 bg-slate-900 border border-white/10 p-3 rounded-xl outline-none" placeholder="Ask Gemini...">
+                <button onclick="askGemini()" class="bg-indigo-600 px-6 rounded-xl font-bold">Send</button>
+            </div>
+        </div>
+
+        <div id="zyphra-box" class="hidden space-y-4">
+            <textarea id="z-input" class="w-full h-32 bg-slate-900 border border-white/10 p-4 rounded-xl outline-none" placeholder="Text to speech..."></textarea>
+            <button onclick="speakZyphra()" class="w-full bg-purple-600 py-4 rounded-xl font-bold">Generate Audio</button>
+        </div>
+    </main>
+
+    <script>
+        const GEMINI_KEY = "YOUR_GEMINI_KEY";
+        const ZYPHRA_KEY = "YOUR_ZYPHRA_KEY";
+
+        function tab(t) {
+            document.getElementById('gemini-box').classList.toggle('hidden', t !== 'gemini');
+            document.getElementById('zyphra-box').classList.toggle('hidden', t !== 'zyphra');
+        }
+
+        async function askGemini() {
+            const inp = document.getElementById('g-input');
+            const chat = document.getElementById('chat');
+            if(!inp.value) return;
+
+            document.getElementById('visualizer').classList.add('animating');
+            chat.innerHTML += `<div><b>You:</b> ${inp.value}</div>`;
+            
+            try {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_KEY}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({contents: [{parts: [{text: inp.value}]}]})
+                });
+                const data = await res.json();
+                chat.innerHTML += `<div class="text-indigo-400"><b>AI:</b> ${data.candidates[0].content.parts[0].text}</div>`;
+            } catch (e) { chat.innerHTML += `<div class="text-red-500">Error! Check API Key.</div>`; }
+            
+            document.getElementById('visualizer').classList.remove('animating');
+            inp.value = '';
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        async function speakZyphra() {
+            const text = document.getElementById('z-input').value;
+            if(!text) return;
+            document.getElementById('visualizer').classList.add('animating');
+            // Logic for Zyphra call goes here (similar to previous steps)
+            alert("Vercel par CORS ka masla proxy ke bina hal ho sakta hai!");
+            document.getElementById('visualizer').classList.remove('animating');
+        }
+    </script>
+</body>
+</html>
