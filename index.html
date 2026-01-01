@@ -101,25 +101,28 @@
     if(!text) return alert("Pehle text likhein!");
 
     viz.classList.add('animating');
-    btn.innerText = "Processing...";
+    btn.innerText = "Connecting...";
     btn.disabled = true;
 
     try {
-        // Zyphra API call
-        const res = await fetch("https://api.zyphra.com/v1/generate", {
+        // CORS Proxy: Yeh browser ko block karne se rokta hai
+        const proxyUrl = "https://cors-anywhere.herokuapp.com/";
+        const targetUrl = "https://api.zyphra.com/v1/generate";
+
+        const res = await fetch(proxyUrl + targetUrl, {
             method: 'POST',
             headers: { 
                 'Authorization': 'Bearer ' + ZYPHRA_KEY, 
-                'Content-Type': 'application/json' 
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
             },
             body: JSON.stringify({ 
                 text: text, 
-                voice_id: "male_01",
-                audio_format: "mp3" 
+                voice_id: "male_01"
             })
         });
 
-        if (!res.ok) throw new Error("API Key issue ya Quota khatam");
+        if (!res.ok) throw new Error("API Response Error");
 
         const blob = await res.blob();
         const audio = new Audio(URL.createObjectURL(blob));
@@ -131,7 +134,8 @@
             btn.disabled = false;
         };
     } catch (e) {
-        alert("Zyphra Error: " + e.message);
+        console.error(e);
+        alert("Failed to fetch: Ek baar https://cors-anywhere.herokuapp.com/corsdemo par ja kar 'Request temporary access' button dabayein.");
         viz.classList.remove('animating');
         btn.disabled = false;
         btn.innerText = "Generate Speech";
@@ -140,5 +144,6 @@
     </script>
 </body>
 </html>
+
 
 
