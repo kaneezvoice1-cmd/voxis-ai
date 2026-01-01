@@ -95,36 +95,50 @@
         }
 
         async function speakZyphra() {
-            const text = document.getElementById('z-input').value;
-            const btn = document.getElementById('z-gen-btn');
-            const viz = document.getElementById('viz-box');
-            if(!text) return;
+    const text = document.getElementById('z-input').value;
+    const btn = document.getElementById('z-gen-btn');
+    const viz = document.getElementById('viz-box');
+    if(!text) return alert("Pehle text likhein!");
 
-            viz.classList.add('animating');
-            btn.innerText = "Synthesizing...";
-            btn.disabled = true;
+    viz.classList.add('animating');
+    btn.innerText = "Processing...";
+    btn.disabled = true;
 
-            try {
-                const res = await fetch("https://api.zyphra.com/v1/generate", {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + ZYPHRA_KEY, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: text, voice_id: "male_01" })
-                });
-                const blob = await res.blob();
-                const audio = new Audio(URL.createObjectURL(blob));
-                audio.play();
-                audio.onended = () => {
-                    viz.classList.remove('animating');
-                    btn.innerText = "Generate Speech";
-                    btn.disabled = false;
-                };
-            } catch (e) {
-                alert("Zyphra API Error!");
-                viz.classList.remove('animating');
-                btn.disabled = false;
-            }
-        }
+    try {
+        // Zyphra API call
+        const res = await fetch("https://api.zyphra.com/v1/generate", {
+            method: 'POST',
+            headers: { 
+                'Authorization': 'Bearer ' + ZYPHRA_KEY, 
+                'Content-Type': 'application/json' 
+            },
+            body: JSON.stringify({ 
+                text: text, 
+                voice_id: "male_01",
+                audio_format: "mp3" 
+            })
+        });
+
+        if (!res.ok) throw new Error("API Key issue ya Quota khatam");
+
+        const blob = await res.blob();
+        const audio = new Audio(URL.createObjectURL(blob));
+        audio.play();
+        
+        audio.onended = () => {
+            viz.classList.remove('animating');
+            btn.innerText = "Generate Speech";
+            btn.disabled = false;
+        };
+    } catch (e) {
+        alert("Zyphra Error: " + e.message);
+        viz.classList.remove('animating');
+        btn.disabled = false;
+        btn.innerText = "Generate Speech";
+    }
+}
     </script>
 </body>
 </html>
+
 
