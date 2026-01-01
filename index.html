@@ -66,84 +66,39 @@
             document.getElementById('status').innerText = isGem ? "Gemini Engine Ready" : "Zyphra Synthesis Ready";
         }
 
-        async function askGemini() {
-            const input = document.getElementById('g-input');
-            const chat = document.getElementById('chat');
-            const viz = document.getElementById('viz-box');
-            if(!input.value) return;
-
-            viz.classList.add('animating');
-            chat.innerHTML += `<div class="text-right"><span class="bg-indigo-600/20 border border-indigo-500/20 p-2 px-4 rounded-xl inline-block">User: ${input.value}</span></div>`;
-            const prompt = input.value;
-            input.value = '';
-
-            try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_KEY}`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({contents: [{parts: [{text: prompt}]}]})
-                });
-                const data = await res.json();
-                const reply = data.candidates[0].content.parts[0].text;
-                chat.innerHTML += `<div class="text-left text-indigo-300"><span class="bg-slate-800 p-2 px-4 rounded-xl inline-block">Voxis: ${reply}</span></div>`;
-            } catch (e) {
-                chat.innerHTML += `<div class="text-red-400 text-xs italic">Error! Key verify karein.</div>`;
-            }
-            
-            viz.classList.remove('animating');
-            chat.scrollTop = chat.scrollHeight;
-        }
-
         async function speakZyphra() {
     const text = document.getElementById('z-input').value;
     const btn = document.getElementById('z-gen-btn');
     const viz = document.getElementById('viz-box');
+    
     if(!text) return alert("Pehle text likhein!");
 
+    // Visualizer aur Button update
     viz.classList.add('animating');
-    btn.innerText = "Connecting...";
+    btn.innerText = "Speaking...";
     btn.disabled = true;
 
-    try {
-        // CORS Proxy: Yeh browser ko block karne se rokta hai
-        const proxyUrl = "https://cors-anywhere.herokuapp.com/";
-        const targetUrl = "https://api.zyphra.com/v1/generate";
+    // Browser ki built-in Speech engine
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Voice settings
+    utterance.rate = 1.0;  // Speed
+    utterance.pitch = 1.0; // Awaz ka bhari-pan
 
-        const res = await fetch(proxyUrl + targetUrl, {
-            method: 'POST',
-            headers: { 
-                'Authorization': 'Bearer ' + ZYPHRA_KEY, 
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify({ 
-                text: text, 
-                voice_id: "male_01"
-            })
-        });
-
-        if (!res.ok) throw new Error("API Response Error");
-
-        const blob = await res.blob();
-        const audio = new Audio(URL.createObjectURL(blob));
-        audio.play();
-        
-        audio.onended = () => {
-            viz.classList.remove('animating');
-            btn.innerText = "Generate Speech";
-            btn.disabled = false;
-        };
-    } catch (e) {
-        console.error(e);
-        alert("Failed to fetch: Ek baar https://cors-anywhere.herokuapp.com/corsdemo par ja kar 'Request temporary access' button dabayein.");
+    // Jab AI bolna khatam kar le
+    utterance.onend = () => {
         viz.classList.remove('animating');
-        btn.disabled = false;
         btn.innerText = "Generate Speech";
-    }
+        btn.disabled = false;
+    };
+
+    // Awaz shuru karein
+    window.speechSynthesis.speak(utterance);
 }
     </script>
 </body>
 </html>
+
 
 
 
