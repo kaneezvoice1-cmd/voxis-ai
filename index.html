@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VOXIS AI - Pro Audio Suite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #0f172a; color: white; font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .wave-container { display: flex; align-items: center; justify-content: center; gap: 4px; height: 50px; }
+        .bar { width: 4px; height: 12px; background: #6366f1; border-radius: 10px; transition: 0.3s; }
+        .animating .bar { animation: sound 0.8s infinite alternate; }
+        @keyframes sound { from { height: 12px; } to { height: 45px; } }
+        .tab-btn.active { background: #4f46e5; color: white; box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4 md:p-10">
+
+    <header class="w-full max-w-4xl flex justify-between items-center mb-12 glass p-4 rounded-2xl">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center font-bold">V</div>
+            <h1 class="text-xl font-bold tracking-tighter">VOXIS AI</h1>
+        </div>
+        <nav class="bg-slate-900/50 p-1 rounded-xl flex gap-1">
+            <button id="g-btn" onclick="switchTab('gemini')" class="tab-btn active px-4 py-2 rounded-lg text-xs font-bold transition-all">GEMINI</button>
+            <button id="z-btn" onclick="switchTab('zyphra')" class="tab-btn px-4 py-2 rounded-lg text-xs text-slate-400 font-bold transition-all">ZYPHRA</button>
+        </nav>
+    </header>
+
+    <div id="viz-box" class="w-full max-w-xl p-10 glass rounded-[2rem] mb-8 flex flex-col items-center shadow-2xl">
+        <div class="wave-container" id="wave-wrap">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        </div>
+        <p id="status" class="text-[10px] uppercase tracking-[0.4em] text-slate-500 mt-6 font-bold">Neural Engine Ready</p>
+    </div>
+
+    <main class="w-full max-w-xl">
+        <div id="gemini-ui" class="space-y-4">
+            <div id="chat" class="h-64 overflow-y-auto glass p-5 rounded-2xl text-sm space-y-3 bg-slate-900/20 border-white/5">
+                <div class="text-indigo-400 italic text-xs">System: Gemini-Pro mode active. Ready for commands...</div>
+            </div>
+            <div class="flex gap-2">
+                <input id="g-input" class="flex-1 bg-slate-900/80 border border-white/10 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all" placeholder="Ask Gemini AI...">
+                <button onclick="askGemini()" class="bg-indigo-600 hover:bg-indigo-500 px-8 rounded-2xl font-bold transition-all active:scale-95">Send</button>
+            </div>
+        </div>
+
+        <div id="zyphra-ui" class="hidden space-y-4">
+            <textarea id="z-input" class="w-full h-40 bg-slate-900/80 border border-white/10 p-5 rounded-2xl outline-none focus:ring-2 focus:ring-purple-500 transition-all" placeholder="Enter text for high-fidelity synthesis..."></textarea>
+            <button onclick="speakZyphra()" id="z-gen-btn" class="w-full bg-purple-600 hover:bg-purple-500 py-4 rounded-2xl font-bold shadow-lg shadow-purple-500/20 transition-all active:scale-95">Generate Speech</button>
+        </div>
+    </main>
+
+    <script>
+        // --- API CONFIG ---
+        const GEMINI_KEY = "YOUR_GEMINI_KEY"; 
+        const ZYPHRA_KEY = "YOUR_ZYPHRA_KEY";
+
+        function switchTab(mode) {
+            const isGem = mode === 'gemini';
+            document.getElementById('gemini-ui').classList.toggle('hidden', !isGem);
+            document.getElementById('zyphra-ui').classList.toggle('hidden', isGem);
+            document.getElementById('g-btn').className = isGem ? 'tab-btn active px-4 py-2 rounded-lg text-xs font-bold' : 'tab-btn px-4 py-2 rounded-lg text-xs text-slate-400 font-bold';
+            document.getElementById('z-btn').className = !isGem ? 'tab-btn active px-4 py-2 rounded-lg text-xs font-bold' : 'tab-btn px-4 py-2 rounded-lg text-xs text-slate-400 font-bold';
+            document.getElementById('status').innerText = isGem ? "Gemini Engine Ready" : "Zyphra Synthesis Ready";
+        }
+
+        async function askGemini() {
+            const input = document.getElementById('g-input');
+            const chat = document.getElementById('chat');
+            const viz = document.getElementById('viz-box');
+            if(!input.value) return;
+
+            viz.classList.add('animating');
+            chat.innerHTML += `<div class="text-right"><span class="bg-indigo-600/20 border border-indigo-500/20 p-2 px-4 rounded-xl inline-block">User: ${input.value}</span></div>`;
+            const prompt = input.value;
+            input.value = '';
+
+            try {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_KEY}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({contents: [{parts: [{text: prompt}]}]})
+                });
+                const data = await res.json();
+                const reply = data.candidates[0].content.parts[0].text;
+                chat.innerHTML += `<div class="text-left text-indigo-300"><span class="bg-slate-800 p-2 px-4 rounded-xl inline-block">Voxis: ${reply}</span></div>`;
+            } catch (e) {
+                chat.innerHTML += `<div class="text-red-400 text-xs italic">Error! Key verify karein.</div>`;
+            }
+            
+            viz.classList.remove('animating');
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        async function speakZyphra() {
+            const text = document.getElementById('z-input').value;
+            const btn = document.getElementById('z-gen-btn');
+            const viz = document.getElementById('viz-box');
+            if(!text) return;
+
+            viz.classList.add('animating');
+            btn.innerText = "Synthesizing...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch("https://api.zyphra.com/v1/generate", {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + ZYPHRA_KEY, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text, voice_id: "male_01" })
+                });
+                const blob = await res.blob();
+                const audio = new Audio(URL.createObjectURL(blob));
+                audio.play();
+                audio.onended = () => {
+                    viz.classList.remove('animating');
+                    btn.innerText = "Generate Speech";
+                    btn.disabled = false;
+                };
+            } catch (e) {
+                alert("Zyphra API Error!");
+                viz.classList.remove('animating');
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
